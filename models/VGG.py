@@ -180,7 +180,7 @@ class VGG3D(chainer.Chain):
     def __init__(self, class_labels=11):
         super(VGG3D, self).__init__()
         with self.init_scope():
-            self.block1_1 = Block3D(3, 64, 3)
+            self.block1_1 = Block3D(4, 64, 3)
             self.block1_2 = Block3D(64, 64, 3)
             self.block2_1 = Block3D(64, 128, 3)
             self.block2_2 = Block3D(128, 128, 3)

@@ -11,7 +11,7 @@ import numpy as np
 
 import models.VGG
 import models.C3D
-from datasets.UCF11 import UCF11
+from datasets.MUG import RgbdLabeledMugDataset
 
 
 def main():
@@ -26,6 +26,8 @@ def main():
     parser = argparse.ArgumentParser(description='Chainer ConvolutionND example:')
     parser.add_argument('--batchsize', '-b', type=int, default=64,
                         help='Number of images in each mini-batch')
+    parser.add_argument('--dataset', '-d', default='data',
+                         help='dataset path for mug dataset')
     parser.add_argument('--learnrate', '-l', type=float, default=0.05,
                         help='Learning rate for SGD')
     parser.add_argument('--epoch', '-e', type=int, default=300,
@@ -36,7 +38,7 @@ def main():
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')
-    parser.add_argument('--arch', '-a', choices=archs.keys(), default='vgg3d',
+    parser.add_argument('--arch', '-a', choices=archs.keys(), default='c3d',
                         help='Architecture')
     parser.add_argument('--optimizer', '-z', choices=optimizers.keys(), default='momentum_sgd',
                         help='Optimizer')
@@ -60,13 +62,20 @@ def main():
     # Set up a neural network to train.
     # Classifier reports softmax cross entropy loss and accuracy at every
     # iteration, which will be used by the PrintReport extension below.
-    print('Using UCF11 dataset.')
+    print('Using MUG dataset.')
     print('Using {} model.'.format(args.arch))
     print('Disable data augmentation' if args.no_random else 'Enable data augmentation')
     mean = np.load(args.mean) if os.path.isfile(args.mean if args.mean else "") else None
-    train = UCF11(args.train_data, mean, args.frames, data_aug=(not args.no_random))
-    test = UCF11(args.test_data, mean, args.frames, data_aug=False)
-    model = L.Classifier(archs[args.arch](UCF11.NUM_OF_CLASSES))
+
+    dataset_path = os.path.abspath(args.dataset)
+    X_train_path = os.path.join(dataset_path, "X_train.npy")
+    t_train_path = os.path.join(dataset_path, "t_train.npy")
+    train_dataset = RgbdLabeledMugDataset(X_train_path, t_train_path)
+    X_test_path = os.path.join(dataset_path, "X_test.npy")
+    t_test_path = os.path.join(dataset_path, "t_test.npy")
+    test_dataset = RgbdLabeledMugDataset(X_test_path, t_test_path)
+
+    model = L.Classifier(archs[args.arch](6))
     if args.gpu >= 0:
         # Make a specified GPU current
         chainer.cuda.get_device_from_id(args.gpu).use()
@@ -76,8 +85,8 @@ def main():
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.WeightDecay(5e-4))
 
-    train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
-    test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
+    train_iter = chainer.iterators.SerialIterator(train_dataset, args.batchsize)
+    test_iter = chainer.iterators.SerialIterator(test_dataset, args.batchsize,
                                                  repeat=False, shuffle=False)
     # Set up a trainer
     updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
@@ -95,7 +104,8 @@ def main():
     trainer.extend(extensions.dump_graph('main/loss'))
 
     # Take a snapshot at each epoch
-    trainer.extend(extensions.snapshot(), trigger=(args.epoch, 'epoch'))
+    trainer.extend(extensions.snapshot(filename='snapshot_epoch_{.updater.epoch}.npz'))
+    trainer.extend(extensions.snapshot_object(model, 'model_epoch_{.updater.epoch}.npz'))
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport())
@@ -110,7 +120,7 @@ def main():
          'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
 
     # Print a progress bar to stdout
-    trainer.extend(extensions.ProgressBar())
+    # trainer.extend(extensions.ProgressBar())
 
     if args.resume:
         # Resume from a snapshot
