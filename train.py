@@ -81,9 +81,10 @@ def main():
         chainer.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()  # Copy the model to the GPU
 
-    optimizer = optimizers[args.optimizer](args.learnrate)
+    # optimizer = optimizers[args.optimizer](args.learnrate)
+    optimizer = chainer.optimizers.Adam(alpha=1e-5)
     optimizer.setup(model)
-    optimizer.add_hook(chainer.optimizer.WeightDecay(5e-4))
+    optimizer.add_hook(chainer.optimizer.WeightDecay(1e-6))
 
     train_iter = chainer.iterators.SerialIterator(train_dataset, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test_dataset, args.batchsize,
@@ -95,9 +96,9 @@ def main():
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
 
-    # Reduce the learning rate by half every 25 epochs.
+    # Reduce the learning rate by half every 5 epochs.
     trainer.extend(extensions.ExponentialShift('lr', 0.5),
-                   trigger=(25, 'epoch'))
+                   trigger=(5, 'epoch'))
 
     # Dump a computational graph from 'loss' variable at the first iteration
     # The "main" refers to the target link of the "main" optimizer.
