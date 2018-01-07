@@ -82,7 +82,7 @@ def main():
         model.to_gpu()  # Copy the model to the GPU
 
     # optimizer = optimizers[args.optimizer](args.learnrate)
-    optimizer = chainer.optimizers.Adam(alpha=1e-5)
+    optimizer = chainer.optimizers.Adam(alpha=5e-6)
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.WeightDecay(1e-6))
 
@@ -97,7 +97,7 @@ def main():
     trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
 
     # Reduce the learning rate by half every 5 epochs.
-    trainer.extend(extensions.ExponentialShift('lr', 0.5),
+    trainer.extend(extensions.ExponentialShift('alpha', 0.5),
                    trigger=(5, 'epoch'))
 
     # Dump a computational graph from 'loss' variable at the first iteration

@@ -3,5 +3,8 @@
 result_*.txt
 ./tmp/
 __pycache__
+
 .python-version
 result
+data
+data_old
