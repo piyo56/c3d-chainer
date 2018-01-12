@@ -79,3 +79,20 @@ class C3D(chainer.Chain):
         h = self.fc8(h)
         return h
         #return F.softmax(h)
+
+    def intermidiate_feature_map(self, x):
+        h = self.conv1a(x)
+        h = F.max_pooling_nd(h, ksize=(1, 2, 2), stride=(1, 2, 2))
+        h = self.conv2a(h)
+        h = F.max_pooling_nd(h, ksize=(2, 2, 2), stride=(1, 2, 2))
+        h = self.conv3a(h)
+        h = self.conv3b(h)
+        h = F.max_pooling_nd(h, ksize=(2, 2, 2), stride=(1, 2, 2))
+        h = self.conv4a(h)
+        h = self.conv4b(h)
+        h = F.max_pooling_nd(h, ksize=(2, 2, 2), stride=(2, 2, 2))
+        h = self.conv5a(h)
+        h = self.conv5b(h)
+        h = F.max_pooling_nd(h, ksize=(2, 2, 2), stride=(2, 2, 2))
+
+        return h
